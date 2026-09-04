@@ -25,7 +25,19 @@ configurePassport();
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI;
 
-mongoose.connect(MONGO_URI);
+// Connection options for better stability
+const mongoOptions = {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+};
+
+mongoose.connect(MONGO_URI, mongoOptions)
+  .then(() => console.log('✅ MongoDB connection initiated'))
+  .catch((err) => {
+    console.error('❌ MongoDB connection failed:', err.message);
+    console.error('Please check your MONGO_URI in .env file');
+    console.error('Current URI (masked):', MONGO_URI ? MONGO_URI.replace(/\/\/.*:.*@/, '//***:***@') : 'Not set');
+  });
 
 const db = mongoose.connection;
 db.on('error', (err) => console.error('MongoDB connection error:', err));
@@ -84,10 +96,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Serve uploaded resumes (protected - only for authenticated HR users)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
-}));
+app.use(cors({ origin: [process.env.CORS_ORIGIN], credentials: true }));
 
 // Session configuration for Google OAuth
 app.use(
